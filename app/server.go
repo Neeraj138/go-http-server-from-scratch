@@ -27,9 +27,9 @@ func main() {
 	if err != nil && err != io.EOF {
 		panic(err)
 	}
-	urlPath := strings.Split(strings.TrimSpace(string(line)), " ")[1]
+	reqLine := strings.Fields(strings.TrimSpace(string(line)))
 	var resp string
-	if urlPath == "/" {
+	if reqLine[1] == "/" {
 		resp = "HTTP/1.1 200 OK\r\n\r\n"
 	} else {
 		resp = "HTTP/1.1 404 Not Found\r\n\r\n"
