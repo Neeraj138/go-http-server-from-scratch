@@ -28,12 +28,20 @@ func main() {
 		panic(err)
 	}
 	reqLine := strings.Fields(strings.TrimSpace(string(line)))
-	var resp string
-	if reqLine[1] == "/" {
-		resp = "HTTP/1.1 200 OK\r\n\r\n"
-	} else {
-		resp = "HTTP/1.1 404 Not Found\r\n\r\n"
+	urlPath := ""
+	if len(reqLine) > 2 {
+		urlPath = reqLine[1]
 	}
+
+	resp := "HTTP/1.1 404 Not Found\r\n\r\n"
+
+	echoSuffix, foundEcho := strings.CutPrefix(urlPath, "/echo/")
+	if foundEcho {
+		resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoSuffix), echoSuffix)
+	} else if urlPath == "/" {
+		resp = "HTTP/1.1 200 OK\r\n\r\n"
+	}
+	fmt.Println(resp)
 
 	_, err = conn.Write([]byte(resp))
 	if err != nil {
