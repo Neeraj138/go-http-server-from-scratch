@@ -27,70 +27,75 @@ func main() {
 		os.Exit(1)
 	}
 
-	conn, err := l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
-	}
-
-	reader := bufio.NewReader(conn)
-	lineCnt := 0
-	temp := ""
-	request := Request{
-		method:  "",
-		url:     "",
-		headers: map[string]string{},
-	}
-	headerKey := ""
-	resp := "HTTP/1.1 404 Not Found\r\n\r\n"
-
-	// reqProcessLoop:
 	for {
-		line, _, err := reader.ReadLine()
-		if err == io.EOF {
-			break
-		}
+
+		conn, err := l.Accept()
 		if err != nil {
-			fmt.Println("Error reading the request", err.Error())
-		}
-		if len(line) == 0 {
-			break
-		}
-		temp = string(line)
-		fmt.Println(lineCnt, line, temp)
-
-		// request line
-		if lineCnt == 0 {
-			reqLine := strings.Fields(temp)
-			request.method = reqLine[0]
-			request.url = reqLine[1]
-		} else {
-			// capture request headers
-			colonInd := strings.IndexRune(temp, ':')
-			headerKey = temp[:colonInd]
-			request.headers[headerKey] = strings.TrimSpace(temp[colonInd+1:])
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
 		}
 
-		lineCnt++
-	}
+		go func() {
+			reader := bufio.NewReader(conn)
+			lineCnt := 0
+			temp := ""
+			request := Request{
+				method:  "",
+				url:     "",
+				headers: map[string]string{},
+			}
+			headerKey := ""
+			resp := "HTTP/1.1 404 Not Found\r\n\r\n"
 
-	if request.url == "/user-agent" || request.url == "/user-agent/" {
-		usrAgnt := request.headers["User-Agent"]
-		resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(usrAgnt), usrAgnt)
-	} else if echoSuff, found := checkEchoSubpath(request.url); found {
-		resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoSuff), echoSuff)
-	} else if request.url == "/" {
-		resp = "HTTP/1.1 200 OK\r\n\r\n"
-	}
+			for {
+				line, _, err := reader.ReadLine()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					fmt.Println("Error reading the request", err.Error())
+				}
+				if len(line) == 0 {
+					break
+				}
+				temp = string(line)
+				fmt.Println(lineCnt, line, temp)
 
-	_, err = conn.Write([]byte(resp))
-	if err != nil {
-		panic(err)
-	}
+				// request line
+				if lineCnt == 0 {
+					reqLine := strings.Fields(temp)
+					request.method = reqLine[0]
+					request.url = reqLine[1]
+				} else {
+					// capture request headers
+					colonInd := strings.IndexRune(temp, ':')
+					headerKey = temp[:colonInd]
+					request.headers[headerKey] = strings.TrimSpace(temp[colonInd+1:])
+				}
+				lineCnt++
+			}
 
-	err = conn.Close()
-	if err != nil {
-		panic(err)
+			if request.url == "/user-agent" || request.url == "/user-agent/" {
+				usrAgnt := request.headers["User-Agent"]
+				resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(usrAgnt), usrAgnt)
+			} else if echoSuff, found := checkEchoSubpath(request.url); found {
+				resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoSuff), echoSuff)
+			} else if request.url == "/" {
+				resp = "HTTP/1.1 200 OK\r\n\r\n"
+			}
+
+			_, err = conn.Write([]byte(resp))
+			if err != nil {
+				panic(err)
+			}
+
+			err = conn.Close()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println("Connection closed...")
+
+		}()
+
 	}
-	fmt.Println("Connection closed...")
 }
