@@ -20,6 +20,17 @@ func checkEchoSubpath(url string) (string, bool) {
 	return echoSuffix, found
 }
 
+func checkFilesSubpath(url string) (string, bool) {
+	filesSuffix, found := strings.CutPrefix(url, "/files/")
+	return filesSuffix, found
+}
+
+func closeFile(file *os.File) {
+	if err := file.Close(); err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -59,7 +70,6 @@ func main() {
 					break
 				}
 				temp = string(line)
-				fmt.Println(lineCnt, line, temp)
 
 				// request line
 				if lineCnt == 0 {
@@ -80,6 +90,35 @@ func main() {
 				resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(usrAgnt), usrAgnt)
 			} else if echoSuff, found := checkEchoSubpath(request.url); found {
 				resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoSuff), echoSuff)
+			} else if file, found := checkFilesSubpath(request.url); found {
+				dirAbsPath := ""
+				if len(os.Args) >= 2 {
+					dirAbsPath = os.Args[2]
+				}
+				fileContent, err := os.Open(dirAbsPath + file)
+				if err != nil {
+					fmt.Println(err)
+				} else {
+					defer closeFile(fileContent)
+					reader = bufio.NewReader(fileContent)
+					temp := make([]byte, 1024)
+					respContent := make([]byte, 0, 1024)
+					respLength := 0
+
+					for {
+						n, err := reader.Read(temp)
+						respLength += n
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							// panic(err)
+							break
+						}
+						respContent = append(respContent, temp...)
+					}
+					resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", respLength, string(respContent))
+				}
 			} else if request.url == "/" {
 				resp = "HTTP/1.1 200 OK\r\n\r\n"
 			}
