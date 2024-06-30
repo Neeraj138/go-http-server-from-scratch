@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -59,10 +60,10 @@ func main() {
 			}
 			headerKey := ""
 			resp := "HTTP/1.1 404 Not Found\r\n\r\n"
-			body := make([]byte, 0, 512)
 
 			for {
 				line, _, err := reader.ReadLine()
+
 				if err == io.EOF {
 					break
 				}
@@ -81,21 +82,11 @@ func main() {
 					// capture request headers
 					headerKey = temp[:colonInd]
 					request.headers[headerKey] = strings.TrimSpace(temp[colonInd+1:])
-				} else {
-					if request.method == "GET" {
-						if len(line) == 0 {
-							break
-						}
-					} else if request.method == "POST" {
-						if len(line) == 0 {
-							continue
-						}
-						body = append(body, line...)
-					}
+				} else if len(line) == 0 {
+					break
 				}
 				lineCnt++
 			}
-			request.body = string(body)
 
 			if request.method == "GET" {
 				if request.url == "/user-agent" || request.url == "/user-agent/" {
@@ -140,12 +131,24 @@ func main() {
 					if len(os.Args) >= 2 {
 						dirAbsPath = os.Args[2]
 					}
-					file, err := os.Create(dirAbsPath + fileName)
+					respFile, err := os.Create(dirAbsPath + fileName)
 					if err != nil {
 						panic(err)
 					}
-					defer closeFile(file)
-					os.WriteFile(dirAbsPath+fileName, []byte(request.body), 0666)
+					defer closeFile(respFile)
+
+					body := make([]byte, 0)
+					if contentLength, err := strconv.Atoi(request.headers["Content-Length"]); err == nil {
+						body = make([]byte, contentLength)
+					}
+					_, err = reader.Read(body)
+					if err != nil {
+						fmt.Println("Error reading request body", err)
+					}
+					_, err = respFile.Write(body)
+					if err != nil {
+						fmt.Println("Error writing to file", err)
+					}
 					resp = "HTTP/1.1 201 Created\r\n\r\n"
 				}
 			}
