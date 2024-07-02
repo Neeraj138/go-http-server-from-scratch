@@ -17,6 +17,15 @@ type Request struct {
 	body    string
 }
 
+type Response struct {
+	protocol   string
+	method     string
+	headers    map[string]string
+	body       string
+	statusCode string
+	statusDesc string
+}
+
 func checkEchoSubpath(url string) (string, bool) {
 	echoSuffix, found := strings.CutPrefix(url, "/echo/")
 	return echoSuffix, found
@@ -31,6 +40,18 @@ func closeFile(file *os.File) {
 	if err := file.Close(); err != nil {
 		panic(err)
 	}
+}
+
+func getResponse(response *Response) string {
+	var resp strings.Builder
+	responseLine := response.protocol + " " + response.statusCode + " " + response.statusDesc + "\r\n"
+	resp.WriteString(responseLine)
+	for headerKey, headerVal := range response.headers {
+		resp.WriteString(headerKey + ": " + headerVal + "\r\n")
+	}
+	resp.WriteString("\r\n")
+	resp.WriteString(response.body)
+	return resp.String()
 }
 
 func main() {
@@ -58,8 +79,16 @@ func main() {
 				headers: map[string]string{},
 				body:    "",
 			}
+			response := Response{
+				protocol:   "HTTP/1.1",
+				method:     "",
+				headers:    map[string]string{},
+				body:       "",
+				statusCode: "404",
+				statusDesc: "Not Found",
+			}
 			headerKey := ""
-			resp := "HTTP/1.1 404 Not Found\r\n\r\n"
+			// resp := "HTTP/1.1 404 Not Found\r\n\r\n"
 
 			for {
 				line, _, err := reader.ReadLine()
@@ -91,9 +120,19 @@ func main() {
 			if request.method == "GET" {
 				if request.url == "/user-agent" || request.url == "/user-agent/" {
 					usrAgnt := request.headers["User-Agent"]
-					resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(usrAgnt), usrAgnt)
+					response.statusCode = "200"
+					response.statusDesc = "OK"
+					response.headers["Content-Type"] = "text/plain"
+					response.headers["Content-Length"] = strconv.Itoa(len(usrAgnt))
+					response.body = usrAgnt
+					// resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(usrAgnt), usrAgnt)
 				} else if echoSuff, found := checkEchoSubpath(request.url); found {
-					resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoSuff), echoSuff)
+					response.statusCode = "200"
+					response.statusDesc = "OK"
+					response.headers["Content-Type"] = "text/plain"
+					response.headers["Content-Length"] = strconv.Itoa(len(echoSuff))
+					response.body = echoSuff
+					// resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoSuff), echoSuff)
 				} else if file, found := checkFilesSubpath(request.url); found {
 					dirAbsPath := ""
 					if len(os.Args) >= 2 {
@@ -120,10 +159,17 @@ func main() {
 							}
 							respContent = append(respContent, temp...)
 						}
-						resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", respLength, string(respContent))
+						response.statusCode = "200"
+						response.statusDesc = "OK"
+						response.headers["Content-Type"] = "application/octet-stream"
+						response.headers["Content-Length"] = strconv.Itoa(respLength)
+						response.body = string(respContent)
+						// resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", respLength, string(respContent))
 					}
 				} else if request.url == "/" {
-					resp = "HTTP/1.1 200 OK\r\n\r\n"
+					response.statusCode = "200"
+					response.statusDesc = "OK"
+					// resp = "HTTP/1.1 200 OK\r\n\r\n"
 				}
 			} else if request.method == "POST" {
 				if fileName, found := checkFilesSubpath(request.url); found {
@@ -149,9 +195,17 @@ func main() {
 					if err != nil {
 						fmt.Println("Error writing to file", err)
 					}
-					resp = "HTTP/1.1 201 Created\r\n\r\n"
+					response.statusCode = "200"
+					response.statusDesc = "OK"
+					// resp = "HTTP/1.1 201 Created\r\n\r\n"
 				}
 			}
+
+			if request.headers["Accept-Encoding"] == "gzip" {
+				response.headers["Content-Encoding"] = "gzip"
+			}
+
+			resp := getResponse(&response)
 
 			_, err = conn.Write([]byte(resp))
 			if err != nil {
