@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net"
@@ -204,7 +206,12 @@ func main() {
 			if encodings, found := request.headers["Accept-Encoding"]; found {
 				for _, encoding := range getClientEncodings(encodings) {
 					if encoding == "gzip" {
-						response.headers["Content-Encoding"] = "gzip"
+						if gzipBody, success := getCompressedBody(response.body); success {
+							response.body = gzipBody
+							response.headers["Content-Encoding"] = "gzip"
+							response.headers["Content-Length"] = strconv.Itoa(len(gzipBody))
+							response.headers["Content-Type"] = "text/plain"
+						}
 						break
 					}
 				}
@@ -233,4 +240,18 @@ func getClientEncodings(encodings string) []string {
 		clientSupported[i] = strings.TrimSpace(v)
 	}
 	return clientSupported
+}
+
+func getCompressedBody(body string) (string, bool) {
+	var buff bytes.Buffer
+	writer := gzip.NewWriter(&buff)
+	_, err := writer.Write([]byte(body))
+	if err != nil {
+		fmt.Println("Error during compression ", err)
+		return body, false
+	}
+	if err := writer.Close(); err != nil {
+		fmt.Println("Error closing writer", err)
+	}
+	return buff.String(), true
 }
