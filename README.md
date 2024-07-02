@@ -1,38 +1,12 @@
-[![progress-banner](https://backend.codecrafters.io/progress/http-server/ce739be6-e6e6-41ff-a747-7cea5906b63e)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+This is a basic implementation of an http server using golang.
 
-This is a starting point for Go solutions to the
-["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
+Currently, it supports the following:
+- GET requests for a few endpoints -
+     -/
+     -/echo/{someTextToEcho} - just echoes the text
+     -/files/{nameOfFile} -> if u want to fetch the file from server, yes! you can host files on this server too!
+- POST requests - /files/{nameOfFile} - creates a file and writes with the request body
+- Concurrent connections
+- gzip compression for response body
 
-[HTTP](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) is the
-protocol that powers the web. In this challenge, you'll build a HTTP/1.1 server
-that is capable of serving multiple clients.
-
-Along the way you'll learn about TCP servers,
-[HTTP request syntax](https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html),
-and more.
-
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
-
-# Passing the first stage
-
-The entry point for your HTTP server implementation is in `app/server.go`. Study
-and uncomment the relevant code, and push your changes to pass the first stage:
-
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
-```
-
-Time to move on to the next stage!
-
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `go (1.19)` installed locally
-1. Run `./your_server.sh` to run your program, which is implemented in
-   `app/server.go`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+I've implemented this as part of [Build your own HTTP server](https://app.codecrafters.io/courses/http-server/) challenge in [codecrafters](https://app.codecrafters.io/catalog) (a great site for implementing various things like http-server, redis, database and so on from scratch)
