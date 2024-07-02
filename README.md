@@ -1,4 +1,4 @@
-This is a basic implementation of an http server using golang.
+This is a basic implementation of an http server using golang. I've implemented this as part of [Build your own HTTP server](https://app.codecrafters.io/courses/http-server/) challenge in [codecrafters](https://app.codecrafters.io/catalog) (a great site for implementing various things like http-server, redis, database and so on from scratch)
 
 Currently, it supports the following:
 - GET requests for a few endpoints -
@@ -9,4 +9,6 @@ Currently, it supports the following:
 - Concurrent connections
 - gzip compression for response body
 
-I've implemented this as part of [Build your own HTTP server](https://app.codecrafters.io/courses/http-server/) challenge in [codecrafters](https://app.codecrafters.io/catalog) (a great site for implementing various things like http-server, redis, database and so on from scratch)
+The code for the server is present in app/server.go. Other files are associated with codecrafter app, used by codecrafters for running the code against various testcases.
+
+Feel free to open issues/raise a PR for adding new features to this basic implementation and make it more advanced!
