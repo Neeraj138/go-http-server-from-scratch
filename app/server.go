@@ -195,7 +195,7 @@ func main() {
 					if err != nil {
 						fmt.Println("Error writing to file", err)
 					}
-					response.statusCode = "200"
+					response.statusCode = "201"
 					response.statusDesc = "OK"
 					// resp = "HTTP/1.1 201 Created\r\n\r\n"
 				}
