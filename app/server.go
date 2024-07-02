@@ -201,8 +201,14 @@ func main() {
 				}
 			}
 
-			if request.headers["Accept-Encoding"] == "gzip" {
-				response.headers["Content-Encoding"] = "gzip"
+			if encodings, found := request.headers["Accept-Encoding"]; found {
+				clientSupportedEncodings := strings.Split(encodings, ",")
+				for _, encoding := range clientSupportedEncodings {
+					if encoding == "gzip" {
+						response.headers["Content-Encoding"] = "gzip"
+						break
+					}
+				}
 			}
 
 			resp := getResponse(&response)
