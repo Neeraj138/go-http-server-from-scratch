@@ -28,34 +28,6 @@ type Response struct {
 	statusDesc string
 }
 
-func checkEchoSubpath(url string) (string, bool) {
-	echoSuffix, found := strings.CutPrefix(url, "/echo/")
-	return echoSuffix, found
-}
-
-func checkFilesSubpath(url string) (string, bool) {
-	filesSuffix, found := strings.CutPrefix(url, "/files/")
-	return filesSuffix, found
-}
-
-func closeFile(file *os.File) {
-	if err := file.Close(); err != nil {
-		panic(err)
-	}
-}
-
-func getResponse(response *Response) string {
-	var resp strings.Builder
-	responseLine := response.protocol + " " + response.statusCode + " " + response.statusDesc + "\r\n"
-	resp.WriteString(responseLine)
-	for headerKey, headerVal := range response.headers {
-		resp.WriteString(headerKey + ": " + headerVal + "\r\n")
-	}
-	resp.WriteString("\r\n")
-	resp.WriteString(response.body)
-	return resp.String()
-}
-
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -90,7 +62,6 @@ func main() {
 				statusDesc: "Not Found",
 			}
 			headerKey := ""
-			// resp := "HTTP/1.1 404 Not Found\r\n\r\n"
 
 			for {
 				line, _, err := reader.ReadLine()
@@ -127,14 +98,12 @@ func main() {
 					response.headers["Content-Type"] = "text/plain"
 					response.headers["Content-Length"] = strconv.Itoa(len(usrAgnt))
 					response.body = usrAgnt
-					// resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(usrAgnt), usrAgnt)
 				} else if echoSuff, found := checkEchoSubpath(request.url); found {
 					response.statusCode = "200"
 					response.statusDesc = "OK"
 					response.headers["Content-Type"] = "text/plain"
 					response.headers["Content-Length"] = strconv.Itoa(len(echoSuff))
 					response.body = echoSuff
-					// resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(echoSuff), echoSuff)
 				} else if file, found := checkFilesSubpath(request.url); found {
 					dirAbsPath := ""
 					if len(os.Args) >= 2 {
@@ -166,12 +135,10 @@ func main() {
 						response.headers["Content-Type"] = "application/octet-stream"
 						response.headers["Content-Length"] = strconv.Itoa(respLength)
 						response.body = string(respContent)
-						// resp = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", respLength, string(respContent))
 					}
 				} else if request.url == "/" {
 					response.statusCode = "200"
 					response.statusDesc = "OK"
-					// resp = "HTTP/1.1 200 OK\r\n\r\n"
 				}
 			} else if request.method == "POST" {
 				if fileName, found := checkFilesSubpath(request.url); found {
@@ -199,7 +166,6 @@ func main() {
 					}
 					response.statusCode = "201"
 					response.statusDesc = "Created"
-					// resp = "HTTP/1.1 201 Created\r\n\r\n"
 				}
 			}
 
@@ -254,4 +220,32 @@ func getCompressedBody(body string) (string, bool) {
 		fmt.Println("Error closing writer", err)
 	}
 	return buff.String(), true
+}
+
+func checkEchoSubpath(url string) (string, bool) {
+	echoSuffix, found := strings.CutPrefix(url, "/echo/")
+	return echoSuffix, found
+}
+
+func checkFilesSubpath(url string) (string, bool) {
+	filesSuffix, found := strings.CutPrefix(url, "/files/")
+	return filesSuffix, found
+}
+
+func closeFile(file *os.File) {
+	if err := file.Close(); err != nil {
+		panic(err)
+	}
+}
+
+func getResponse(response *Response) string {
+	var resp strings.Builder
+	responseLine := response.protocol + " " + response.statusCode + " " + response.statusDesc + "\r\n"
+	resp.WriteString(responseLine)
+	for headerKey, headerVal := range response.headers {
+		resp.WriteString(headerKey + ": " + headerVal + "\r\n")
+	}
+	resp.WriteString("\r\n")
+	resp.WriteString(response.body)
+	return resp.String()
 }
