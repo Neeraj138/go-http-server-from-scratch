@@ -202,8 +202,7 @@ func main() {
 			}
 
 			if encodings, found := request.headers["Accept-Encoding"]; found {
-				clientSupportedEncodings := strings.Split(encodings, ",")
-				for _, encoding := range clientSupportedEncodings {
+				for _, encoding := range getClientEncodings(encodings) {
 					if encoding == "gzip" {
 						response.headers["Content-Encoding"] = "gzip"
 						break
@@ -226,4 +225,12 @@ func main() {
 		}()
 
 	}
+}
+
+func getClientEncodings(encodings string) []string {
+	clientSupported := strings.Split(encodings, ",")
+	for i, v := range clientSupported {
+		clientSupported[i] = strings.TrimSpace(v)
+	}
+	return clientSupported
 }
